@@ -1,4 +1,3 @@
-# hugochavero
 <html>
 <header>
 <title>Hugo Chavero</title>
