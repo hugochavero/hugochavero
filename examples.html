@@ -170,36 +170,6 @@ class ContractViewSet(viewsets.ModelViewSet):
         contract.save()
         return Response(data=r)
     
-    '''
-    @detail_route(methods=['post'])
-    def set_contract_info(self, request, client_id=None):
-        client = get_object_or_404(Client, id=client_id)
-        contract = Contract.objects.filter(client=client)
-        info = json.loads(contract.contract_info)
-        info['city'] = request.POST['city']
-        info['name'] = request.POST['name']
-        info['address'] = request.POST['address']
-        info['phone'] = request.POST['phone']
-        info['state'] = request.POST['state']
-        info['email'] = request.POST['email']
-        contract.contract_info = json.dumps(info)
-        c_name = request.POST['name']
-        c_country = request.POST['country'].upper()
-        created_by_id = contract.client.created_by_id
-        client = Client.objects.create(name=c_name,
-                                       country=c_country,
-                                       created_by_id=created_by_id)
-        contract.client = client
-        contract.save()
-        return Response(status=status.HTTP_200_OK)
-
-    @detail_route(methods=['post'])
-    def get_contract_info(self, request, client_id):
-        contract = get_object_or_404(Contract, client_id=client_id)
-        info = json.loads(contract.contract_info)
-        return Response(data=info)
-    '''
-
     @detail_route(methods=['post'])
     def get_license(self, request, pk):
         '''
