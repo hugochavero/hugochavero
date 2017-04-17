@@ -1,3 +1,11 @@
+<h1>Algunos proyectos en los que he participago</h1>
+<ul>
+	<li><a href="http://master.webforprintingar.com/shop/">Web To Print</a></li>
+	<li><a href="http://clonador.webtophotos.com"></a>Web To Photos</li>
+	<li><a href="http://www.imprenta5.com.ar/upload/48/4e77e5e8-b1e3-4310-a3e0-b7b6085b1bf4.mp4"></a>DatoVariable</li>
+	<li><a href="http://tiendaonline.com.ar"></a>Tienda Online (En desarrollo)</li>
+	<li><a href="http://licitamos.cl"></a>Licitamos</li>
+</ul>
 <h3>API Rest para validar o crear licencias de activacion de software de escritorio.</h3>
 <pre><code>
 # -*- encoding: utf-8 -*-
@@ -282,4 +290,189 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         r['client_id'] = client.id
         return Response(data=r)
 
-</pre></code>
+</code></pre>
+<br><br>
+<h3>Definicion de modelo de datos en Django</h3>
+<pre><code>
+# -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+from django.db import models
+
+from imagekit.models import ImageSpecField
+from imagekit.processors import ResizeToFit
+
+from shop.managers import CurrentSiteManager
+
+
+class Plan(models.Model):
+	code = models.IntegerField('Código', primary_key=True)
+	name = models.CharField('Nombre del plan', max_length=100)
+	description = models.CharField('Descripción', max_length=300)
+
+	class Meta:
+		verbose_name = "Plan"
+		verbose_name_plural = "Plans"
+		db_table = 'plan'
+
+	def __str__(self):
+		return self.name
+
+
+class Currency(models.Model):
+	code = models.IntegerField('Código',primary_key=True)
+	symbol = models.CharField('Símbolo', max_length=5)
+
+	class Meta:
+		verbose_name = "Currency"
+		verbose_name_plural = "Currencies"
+		db_table = 'currency'
+
+	def __str__(self):
+		return self.symbol.encode('utf8')
+
+
+class Template(models.Model):
+	code = models.CharField('Codigo', max_length=30, primary_key=True)
+	description = models.CharField('Descripcion', max_length=30)
+	image = models.ImageField('Imagen')
+
+	def __str__(self):
+		return self.code
+
+	class Meta:
+		verbose_name = "Template"
+		verbose_name_plural = "Templates"
+		db_table = 'template'
+	
+
+class Store(models.Model):
+	name = models.CharField('Nombre de la tienda', max_length=100)
+	url_store = models.CharField('URL tienda', max_length=200)
+	url_client = models.CharField('URL propia', max_length=200)
+	currency = models.ForeignKey(Currency, verbose_name='Moneda')
+	plan = models.ForeignKey(Plan, verbose_name='Plan')
+	logo = models.ImageField('Logo', upload_to='logos', blank=True)
+	user = models.OneToOneField('auth.User', verbose_name='Usuario', related_name='store')
+	template = models.ForeignKey(Template, default='classic')
+	on_site = CurrentSiteManager('url_client')
+
+	class Meta:
+		verbose_name = "Store"
+		verbose_name_plural = "Stores"
+		db_table = 'store'
+
+	def __str__(self):
+		return self.name
+
+
+class Category(models.Model):
+	title = models.CharField('Nombre de la categoría', max_length=50)
+	image = models.ImageField('Imagen', upload_to='categories', blank=True)
+	store = models.ForeignKey(Store, verbose_name='Tienda', related_name='categories')
+	
+	class Meta:
+		verbose_name = "Category"
+		verbose_name_plural = "Categories"
+		db_table = 'category'
+
+	def __str__(self):
+		return self.name
+	
+
+class Product(models.Model):
+	title = models.CharField('Título del producto', max_length=100)
+	description = models.CharField('Descripción del producto', max_length=500)
+	price = models.DecimalField('Precio por unidad', max_digits=10, decimal_places=2)
+	category = models.ForeignKey(Category,verbose_name='Categoría',null=True, blank=True )
+	stock = models.IntegerField('Cantidad en stock',null=True, blank=True)
+	html = models.TextField('Texto formato Html',null=True, blank=True)
+	store = models.ForeignKey(Store,verbose_name='Tienda',related_name='products')
+	largeImage = models.ImageField('Imagen', upload_to='products', blank=True)
+	image = ImageSpecField(
+						 source='largeImage',
+						 format='JPEG',
+						 options={'quality': 40},
+						 processors=[ResizeToFit(100, 200)])
+	on_site = CurrentSiteManager('store')
+	objects = models.Manager()
+
+	class Meta:
+		verbose_name = "Product"
+		verbose_name_plural = "Products"
+		db_table = 'product'
+
+	def __str__(self):
+		return self.title.encode('utf8')
+	
+
+class Galery(models.Model):
+	product = models.ForeignKey(Category,verbose_name='Producto',related_name='galery')
+	image = models.ImageField('Imagen', upload_to='products')
+	preview = ImageSpecField(
+						 source='image',
+						 format='JPEG',
+						 options={'quality': 40},
+						 processors=[ResizeToFit(100, 200)])
+
+	class Meta:
+		verbose_name = "Galery"
+		verbose_name_plural = "Galeries"
+		db_table = 'galery'
+
+	def __str__(self):
+		return self.name
+
+
+class Parameter(models.Model):
+	store = models.ForeignKey(Store)
+	key = models.CharField("Código", max_length=100)
+	value = models.CharField("Valor", max_length=200)
+	
+	class Meta:
+		unique_together = (("store", "value"),)
+		verbose_name = "Parameter"
+		verbose_name_plural = "Parameters"
+		db_table = 'parameters'
+
+
+class Cart(models.Model):
+	session = models.CharField('ID de Sesión', max_length=200)
+	date = models.DateField('Fecha')
+	product = models.ForeignKey(Product)
+	price = models.PositiveIntegerField('Precio Unitario')
+	quantity = models.PositiveIntegerField('Cantidad')
+	
+	class Meta:
+		verbose_name = "Cart"
+		verbose_name_plural = "Cart"
+		db_table = 'cart'
+
+
+class ManualShipping(models.Model):
+	store = models.ForeignKey(Store)
+	description = models.CharField('Descripción', max_length=150)
+	price = models.PositiveIntegerField('Precio', default='0')
+	
+	class Meta:
+		verbose_name = "Manual Shipping"
+		verbose_name_plural = "Manual Shippings"
+		db_table = 'shipping_manual'
+
+	def __str__(self):
+		return self.description
+	
+	
+class CourierShipping(models.Model):
+	store = models.ForeignKey(Store)
+	description = models.CharField('Descripción', max_length=150)
+	parameters_key = models.CharField('Keys', max_length=60)
+	
+	class Meta:
+		verbose_name = "Courier Shipping"
+		verbose_name_plural = "Courier Shippings"
+		db_table = 'shipping_courier'
+
+	def __str__(self):
+		return self.description
+</code></pre>
